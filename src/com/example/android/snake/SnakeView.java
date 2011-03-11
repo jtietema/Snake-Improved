@@ -21,12 +21,13 @@ import java.util.Random;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.AttributeSet;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.TextView;
 
@@ -103,6 +104,13 @@ public class SnakeView extends TileView {
      * function to cause an update/invalidate to occur at a later date.
      */
     private RefreshHandler mRedrawHandler = new RefreshHandler();
+    
+    /**
+     * Remember old coordinates to lookup touch movement
+     */
+    private float touchX = 0;
+    private float touchY = 0;
+    private static final float SENSITIVITY = 40; 
 
     class RefreshHandler extends Handler {
 
@@ -308,6 +316,71 @@ public class SnakeView extends TileView {
         }
 
         return super.onKeyDown(keyCode, msg);
+    }
+    
+    public boolean onTouchEvent(MotionEvent event) {
+    	if (event.getAction() == MotionEvent.ACTION_DOWN) {
+    		touchX = event.getX();
+    		touchY = event.getY();
+    		
+    		if (mMode == READY | mMode == LOSE) {
+                /*
+                 * At the beginning of the game, or the end of a previous one,
+                 * we should start a new game.
+                 */
+                initNewGame();
+                setMode(RUNNING);
+                update();
+                return (true);
+            }
+    		
+    		if (mMode == PAUSE) {
+                /*
+                 * If the game is merely paused, we should just continue where
+                 * we left off.
+                 */
+                setMode(RUNNING);
+                update();
+                return (true);
+            }
+    	}
+		if (event.getAction() == MotionEvent.ACTION_MOVE) {
+			Log.d("Snake", "ACTION_MOVE");
+			
+			if ((event.getY() - touchY) > SENSITIVITY) {
+				touchY = event.getY();
+				if (mDirection != NORTH) {
+	                mNextDirection = SOUTH;
+	            }
+				return true;
+			}
+			
+			if ((event.getY() - touchY) < -SENSITIVITY) {
+				touchY = event.getY();
+				if (mDirection != SOUTH) {
+	                mNextDirection = NORTH;
+	            }
+				return true;
+			}
+			
+			if ((event.getX() - touchX) > SENSITIVITY) {
+				touchX = event.getX();
+				if (mDirection != WEST) {
+	                mNextDirection = EAST;
+	            }
+				return true;
+			}
+			
+			if ((event.getX() - touchX) < -SENSITIVITY) {
+				touchX = event.getX();
+				if (mDirection != EAST) {
+	                mNextDirection = WEST;
+	            }
+				return true;
+			}
+		}
+    	
+    	return super.onTouchEvent(event);
     }
 
     /**
